@@ -1,0 +1,26 @@
+{
+  "files": {
+    "db/db.connect.js": [
+      {
+        "id": "9fec5558-79e0-4b46-8185-4f50188995ec",
+        "line": 4,
+        "version": 16,
+        "index": 92
+      }
+    ],
+    "index.js": [
+      {
+        "id": "a9def029-a334-44ee-9ed6-bff69281ed31",
+        "line": 1,
+        "version": 1723,
+        "index": 0
+      },
+      {
+        "id": "4a3ed20f-56d1-45cc-a727-acd2cec713f2",
+        "line": 2,
+        "version": 1723,
+        "index": 37
+      }
+    ]
+  }
+}
