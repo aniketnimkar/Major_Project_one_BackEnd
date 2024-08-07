@@ -74,6 +74,21 @@ app.get("/products/category/:category", async (req, res) => {
   }
 });
 
+app.get("/productDetails/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const product = await Product.findById(id);
+    if (product) {
+      res.status(200).json({ message: "Product found", product: product });
+    } else {
+      res.status(404).json({ message: "Product not found" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "An error occured while getting  products" });
+  }
+});
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on PORT ${PORT}`);
