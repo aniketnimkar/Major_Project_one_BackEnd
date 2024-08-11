@@ -1,16 +1,18 @@
 const mongoose = require("mongoose");
-
 const express = require("express");
 const app = express();
 const cors = require("cors");
+
 const corsOptions = {
   origin: "*",
-  Credentials: true,
+  credentials: true,
 };
 app.use(cors(corsOptions));
 
 const { intializeDatabase } = require("./db/db.connect");
 const Product = require("./models/product.models");
+const Cart = require("./models/cart.models");
+const Wishlist = require("./models/wishlist.models");
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
@@ -18,11 +20,10 @@ app.use(express.json());
 intializeDatabase();
 
 app.get("/", (req, res) => {
-  res.send("This is express server");
+  res.send("This is an express server");
 });
 
-// Creating data and sending data to backend
-
+// Route to create a new product and save it in the database
 app.post("/products", async (req, res) => {
   try {
     const createProduct = new Product(req.body);
@@ -40,6 +41,7 @@ app.post("/products", async (req, res) => {
   }
 });
 
+// Route to get all products
 app.get("/products", async (req, res) => {
   try {
     const products = await Product.find();
@@ -51,11 +53,11 @@ app.get("/products", async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "An error occured while getting products." });
+      .json({ message: "An error occurred while getting products." });
   }
 });
 
-// route for getting products by category
+// Route to get products by category
 app.get("/products/category/:category", async (req, res) => {
   try {
     const category = req.params.category;
@@ -70,10 +72,11 @@ app.get("/products/category/:category", async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "An error occured while getting  products" });
+      .json({ message: "An error occurred while getting products" });
   }
 });
 
+// Route to get product details by ID
 app.get("/productDetails/:id", async (req, res) => {
   try {
     const id = req.params.id;
@@ -86,9 +89,183 @@ app.get("/productDetails/:id", async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "An error occured while getting  products" });
+      .json({ message: "An error occurred while getting products" });
   }
 });
+
+// Route for adding products to the cart
+app.post("/products/addToCart", async (req, res) => {
+  try {
+    // Find the existing cart (there should only be one cart)
+    let cart = await Cart.findOne();
+
+    if (cart) {
+      // If the cart exists, push the new product into the existing cart array
+      cart.cart.push(req.body); // Add the new product to the existing cart
+      const updatedCart = await cart.save(); // Save the updated cart
+      res.status(200).json({
+        message: "Product added to cart successfully",
+        cart: updatedCart,
+      });
+    } else {
+      // If no cart exists, create a new one
+      cart = new Cart({
+        cart: [req.body], // Create a new cart with the product
+      });
+      const newCart = await cart.save(); // Save the new cart
+      res.status(201).json({
+        message: "Cart created and product added successfully",
+        cart: newCart,
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "An error occurred while adding the product to the cart",
+      error: error.message,
+    });
+  }
+});
+
+// route for put request
+app.put("/product/updateQuantity/:id", async (req, res) => {
+  try {
+    // Find the cart
+    let cart = await Cart.findOne();
+    if (!cart) {
+      return res.status(404).json({ error: "Cart not found" });
+    }
+
+    const id = req.params.id;
+    const { quantity } = req.body;
+
+    // Find the product in the cart by ID
+    const product = cart.cart.find((item) => item._id.toString() === id);
+
+    if (product) {
+      // Update the product quantity
+      product.quantity = quantity;
+
+      // Save the updated cart
+      const updatedCart = await cart.save();
+      res.status(200).json({
+        message: "Quantity updated successfully",
+        cart: updatedCart,
+      });
+    } else {
+      res.status(404).json({ error: "Product not found in cart" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to update quantity", details: error.message });
+  }
+});
+
+// delete product from cart
+app.delete("/product/deleteProduct/:id", async (req, res) => {
+  try {
+    let cart = await Cart.findOne(); // Assuming you have a Cart model and want to find the first cart
+    if (!cart) {
+      return res.status(404).json({ error: "Cart not found" });
+    }
+
+    const id = req.params.id;
+
+    console.log("ID from params:", id);
+    console.log("Cart contents:", cart.cart);
+
+    // Find the index of the product in the cart by Id
+    const productIndex = cart.cart.findIndex(
+      (item) => item._id.toString() === id
+    );
+
+    if (productIndex !== -1) {
+      // Remove the product from the cart
+      cart.cart.splice(productIndex, 1);
+
+      // Save the updated cart
+      await cart.save();
+
+      res.status(200).json({ message: "Product removed from cart", cart });
+    } else {
+      console.log("Product not found with ID:", id);
+      res.status(404).json({ error: "Product not found" });
+    }
+  } catch (error) {
+    console.error("Error occurred while deleting the product:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while deleting the product" });
+  }
+});
+
+app.post("/products/addToWishlist", async (req, res) => {
+  try {
+    // Find the existing wishlist (there should only be one wishlist)
+    let wishlist = await Wishlist.findOne();
+
+    if (wishlist) {
+      // If the wishlist exists, push the new product into the existing wishlist array
+      wishlist.wishlist.push(req.body); // Add the new product to the existing wishlist
+      const updatedWishlist = await wishlist.save(); // Save the updated wishlist
+      res.status(200).json({
+        message: "Product added to wishlist successfully",
+        wishlist: updatedWishlist,
+      });
+    } else {
+      // If no cart exists, create a new one
+      wishlist = new Wishlist({
+        wishlist: req.body, // Create a new cart with the product
+      });
+      const newWishlist = await wishlist.save(); // Save the new cart
+      res.status(201).json({
+        message: "Wishlist created and product added successfully",
+        wishlist: newWishlist,
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "An error occurred while adding the product to the wishlist",
+      error: error.message,
+    });
+  }
+});
+
+// delete from wishlist
+app.delete("/product/deleteProductWishlist/:id", async (req, res) => {
+  try {
+    let wishlist = await Wishlist.findOne(); // Assuming you have a Cart model and want to find the first cart
+    if (!wishlist) {
+      return res.status(404).json({ error: "Wishlist not found" });
+    }
+
+    const id = req.params.id;
+
+    // Find the index of the product in the cart by Id
+    const productIndex = wishlist.wishlist.findIndex(
+      (item) => item._id.toString() === id
+    );
+
+    if (productIndex !== -1) {
+      // Remove the product from the wishlist
+      wishlist.wishlist.splice(productIndex, 1);
+
+      // Save the updated wishlist
+      await wishlist.save();
+
+      res
+        .status(200)
+        .json({ message: "Product removed from wishlist", wishlist });
+    } else {
+      res.status(404).json({ error: "Product not found" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "An error occurred while deleting the product" });
+  }
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on PORT ${PORT}`);
