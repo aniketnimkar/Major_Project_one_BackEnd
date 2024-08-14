@@ -13,6 +13,7 @@ const { intializeDatabase } = require("./db/db.connect");
 const Product = require("./models/product.models");
 const Cart = require("./models/cart.models");
 const Wishlist = require("./models/wishlist.models");
+const Address = require("./models/address.models");
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
@@ -263,6 +264,109 @@ app.delete("/product/deleteProductWishlist/:id", async (req, res) => {
     res
       .status(500)
       .json({ error: "An error occurred while deleting the product" });
+  }
+});
+
+//address Api
+//addresses POST API
+
+app.post("/addresses/addAddress", async (req, res) => {
+  try {
+    let address = await Address.findOne();
+
+    if (address) {
+      address.address.push(req.body);
+      const updatedAddress = await address.save();
+      res.status(200).json({
+        message: "Address uploaded successfully",
+        address: updatedAddress,
+      });
+    } else {
+      address = new Address({
+        address: req.body,
+      });
+      const newAddress = await address.save();
+      res.status(201).json({
+        message: "Address created and added successfully",
+        address: newAddress,
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "An error occurred while adding address",
+      error: error.message,
+    });
+  }
+});
+
+// route for address put request
+app.put("/addresses/updateAddress/:id", async (req, res) => {
+  try {
+    // Find the address document
+    let address = await Address.findOne();
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" });
+    }
+
+    const id = req.params.id;
+    const updatedAddress = req.body;
+
+    // Find the specific address in the array by ID
+    const foundAddressIndex = address.address.findIndex((add) => add.id === id);
+
+    if (foundAddressIndex !== -1) {
+      // Update the properties of the found address
+      address.address[foundAddressIndex] = {
+        ...address.address[foundAddressIndex],
+        ...updatedAddress,
+      };
+
+      // Save the updated address
+      const updated = await address.save();
+      res.status(200).json({
+        message: "Address updated successfully",
+        address: updated,
+      });
+    } else {
+      res.status(404).json({ error: "Address not found" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to update Address", details: error.message });
+  }
+});
+
+app.delete("/addresses/deleteAddress/:id", async (req, res) => {
+  try {
+    // Find the address document
+    let address = await Address.findOne();
+    if (!address) {
+      return res.status(404).json({ error: "address not found" });
+    }
+
+    const id = req.params.id;
+
+    // Find the index of the address in the addressess by Id
+    const addressIndex = address.address.findIndex((add) => add.id === id);
+
+    if (addressIndex !== -1) {
+      // Remove the address from the addresses array
+      address.address.splice(addressIndex, 1);
+
+      // Save the updated wishlist
+      await address.save();
+
+      res
+        .status(200)
+        .json({ message: "address removed from addresses", address });
+    } else {
+      res.status(404).json({ error: "address not found" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "An error occurred while deleting theaddress" });
   }
 });
 
