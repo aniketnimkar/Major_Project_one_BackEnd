@@ -437,7 +437,13 @@ app.post("/login", async (req, res) => {
       userCredentials.password,
       findUser.password
     );
-    console.log(matchPassword);
+    if (matchPassword) {
+      const token = jwt.sign({ email: userCredentials.email }, "Aniket", {
+        expiresIn: "24h",
+      });
+      console.log(token);
+      res.json({ message: "Login Success", token });
+    }
   } catch (error) {
     res.status(500).json({ error: "An error occurred while login." });
   }
