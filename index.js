@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const corsOptions = {
   origin: "*",
@@ -14,6 +16,7 @@ const Product = require("./models/product.models");
 const Cart = require("./models/cart.models");
 const Wishlist = require("./models/wishlist.models");
 const Address = require("./models/address.models");
+const ecommerceUsers = require("./models/user.models");
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
@@ -378,6 +381,70 @@ app.delete("/addresses/deleteAddress/:id", async (req, res) => {
       .status(500)
       .json({ error: "An error occurred while deleting theaddress" });
   }
+});
+
+app.post("/register", async (req, res) => {
+  try {
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    // Create a new user with the hashed password
+    const createUser = new ecommerceUsers({
+      ...req.body,
+      password: hashedPassword,
+    });
+    const saveUser = await createUser.save();
+
+    if (saveUser) {
+      res.status(201).json({ message: "user register successfully", saveUser });
+    } else {
+      res.status(400).json({ message: "user register faild" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "An error occurred while registering user." });
+  }
+});
+
+//middleware to verify token
+const verifyJWT = (req, res, next) => {
+  const token = req.headers["authorization"];
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, "Aniket");
+    console.log("This is middleware");
+    req.user = decoded; // Store the decoded payload in the request, if needed later
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid token." });
+  }
+};
+
+app.post("/login", async (req, res) => {
+  const userCredentials = req.body;
+  try {
+    const findUser = await ecommerceUsers.findOne({
+      email: userCredentials.email,
+    });
+    if (!findUser) {
+      res.status(404).json({ message: "user not found, Please Register" });
+    }
+    const matchPassword = await bcrypt.compare(
+      userCredentials.password,
+      findUser.password
+    );
+    console.log(matchPassword);
+  } catch (error) {
+    res.status(500).json({ error: "An error occurred while login." });
+  }
+});
+
+app.get("/data", verifyJWT, (req, res) => {
+  res.json({ message: "This is Data...." });
 });
 
 const PORT = 3000;
