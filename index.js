@@ -98,7 +98,7 @@ app.get("/productDetails/:id", async (req, res) => {
 });
 
 // Route for adding products to the cart
-app.post("/products/addToCart", async (req, res) => {
+app.post("/products/addToCart", verifyJWT, async (req, res) => {
   try {
     // Find the existing cart (there should only be one cart)
     let cart = await Cart.findOne();
@@ -407,7 +407,7 @@ app.post("/register", async (req, res) => {
 });
 
 //middleware to verify token
-const verifyJWT = (req, res, next) => {
+function verifyJWT(req, res, next) {
   const token = req.headers["authorization"];
 
   if (!token) {
@@ -422,7 +422,7 @@ const verifyJWT = (req, res, next) => {
   } catch (error) {
     return res.status(403).json({ message: "Invalid token." });
   }
-};
+}
 
 app.post("/login", async (req, res) => {
   const userCredentials = req.body;
